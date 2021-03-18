@@ -14,6 +14,7 @@ module.exports = {
   ],
   parser: "@typescript-eslint/parser",
   parserOptions: {
+    tsconfigRootDir: __dirname,
     project: ["tsconfig.json", "tsconfig.dev.json"],
     sourceType: "module",
   },
@@ -25,6 +26,10 @@ module.exports = {
     "import",
   ],
   rules: {
-    quotes: ["error", "double"],
+    "max-len": ["error", { "code": 120 }],
+    "quotes": ["error", "double"],
+    "object-curly-spacing": ["error", "always"],
+    "require-jsdoc": 0,
+    "ban-ts-ignore": false,
   },
 };
