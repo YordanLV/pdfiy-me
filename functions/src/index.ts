@@ -1,63 +1,22 @@
-import * as puppeteer from "puppeteer";
-import * as functions from "firebase-functions";
+import express = require('express');
+import cors = require('cors');
+import functions = require('firebase-functions');
 
-async function autoScroll(page: puppeteer.Page) {
-  await page.evaluate(async () => {
-    await new Promise<void>((resolve, _reject) => {
-      let totalHeight = 0;
-      const distance = 100;
-      const timer = setInterval(() => {
-        const scrollHeight = document.body.scrollHeight;
-        window.scrollBy(0, distance);
-        totalHeight += distance;
+import { exportPDF } from './exportPDF';
 
-        if (totalHeight >= scrollHeight) {
-          clearInterval(timer);
-          resolve();
-        }
-      }, 200);
-    });
-  });
-}
+const app = express();
 
-export const exportPDF = functions
-  .runWith({ memory: "1GB" })
-  .https.onRequest(async (request, response) => {
-    // @ts-ignore
-    const { url, tag }: { url: string, tag: string } = request.query;
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
-    const page = await browser.newPage();
+// Automatically allow cross-origin requests
+app.use(cors({ origin: true }));
 
-    await page.goto(url, { waitUntil: "networkidle2" });
+// build multiple CRUD interfaces:
+app.post('/', async (req, res) => {
+  console.log(req.body)
+  const { url, tag, landscape } = req.body;
+  const pdf = await exportPDF(url, tag, landscape);
+  res.contentType("application/pdf");
+  res.send(pdf);
+});
 
-    const pdfConfig = {
-      format: "A4",
-      printBackground: true,
-    };
-
-    page.on("response", async (response) => {
-      const style = await response.text();
-      console.log(style);
-    });
-
-    if (tag) {
-      await page.evaluate((selectedTag) => {
-        const selectedElement = document.querySelector(selectedTag).innerHTML;
-        // @ts-ignore
-        document.querySelector("body").innerHTML = selectedElement;
-      }, tag); // Get DOM HTML
-    }
-
-    await page.emulateMediaType("screen");
-    await autoScroll(page);
-    // @ts-ignore
-    const pdf = await page.pdf(pdfConfig);
-
-    await browser.close();
-
-    response.contentType("application/pdf");
-    response.send(pdf);
-  });
+// Expose Express API as a single Cloud Function:
+exports.app = functions.https.onRequest(app);
