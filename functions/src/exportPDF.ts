@@ -33,11 +33,6 @@ export const exportPDF = async (url: string, tag?: string, landscape?: boolean) 
     landscape: landscape ? true : false,
   };
 
-  page.on("response", async (response) => {
-    const style = await response.text();
-    console.log(style);
-  });
-
   if (tag) {
     await page.evaluate((selectedTag) => {
       const selectedElement = document.querySelector(selectedTag).innerHTML;
